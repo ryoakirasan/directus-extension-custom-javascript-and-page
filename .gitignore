@@ -73,7 +73,6 @@ pnpm-lock.yaml
 .eslintcache
 .stylelintcache
 .cache
-dist/
 build/
 tmp/
 temp/

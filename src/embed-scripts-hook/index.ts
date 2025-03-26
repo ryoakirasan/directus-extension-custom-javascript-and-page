@@ -1,25 +1,36 @@
 import { defineHook } from "@directus/extensions-sdk";
 
 const script = `
-let isExecuting = false;
-let isInitialized = false;
-let lastHref = window.location.href;
-let cachedScriptContent = null; // 缓存远程脚本内容
-let lastMutationTime = 0; // 记录上一次变动的时间
-const DEBOUNCE_TIME = 300; // 防抖时间（单位：毫秒）
-// 请求并缓存远程脚本
+/**
+ * @file This script dynamically loads and executes remote scripts based on route changes and DOM mutations.
+ * @author [Your Name]
+ * @version 1.0.0
+ */
+
+let isExecuting = false; // Flag to prevent concurrent executions
+let isInitialized = false; // Flag to indicate if the script has been initialized
+let lastHref = window.location.href; // Store the last visited URL
+let cachedScriptContent = null; // Cache for storing the remote script content
+let lastMutationTime = 0; // Timestamp of the last DOM mutation
+const DEBOUNCE_TIME = 300; // Debounce time in milliseconds to prevent rapid executions
+
+/**
+ * Fetches the remote script from the specified endpoint and caches it.
+ * @returns {Promise<object|null>} A promise that resolves with the parsed JSON content of the script, or null if the script content is empty.
+ * @throws {Error} If there is an error during the fetch operation.
+ */
 function loadRemoteScript() {
-    if (cachedScriptContent&&cachedScriptContent!=='') {
-        return Promise.resolve(cachedScriptContent); // 如果已缓存，直接返回
+    if (cachedScriptContent && cachedScriptContent !== '') {
+        return Promise.resolve(cachedScriptContent); // Return cached content if available
     }
 
     return fetch('/customjs/scripts')
         .then(response => response.text())
         .then(scriptContent => {
             if (scriptContent === '') {
-                return null; // 如果脚本内容为空，返回null
+                return null; // Return null if the script content is empty
             }
-            cachedScriptContent = JSON.parse(scriptContent); // 缓存脚本内容
+            cachedScriptContent = JSON.parse(scriptContent); // Cache the script content
             return JSON.parse(scriptContent);
         })
         .catch(error => {
@@ -28,60 +39,69 @@ function loadRemoteScript() {
         });
 }
 
-// 动态插入脚本，head类型插入到head标签最后面，body类型插入到body中
+/**
+ * Inserts the cached script into the DOM, either in the head or body.
+ * The script is inserted based on the 'head' and 'body' keys in the cached script content.
+ */
 function insertScript() {
-    if (!cachedScriptContent||cachedScriptContent==='') {
-        return; // 如果没有缓存的脚本内容，直接返回
+    if (!cachedScriptContent || cachedScriptContent === '') {
+        return; // Do nothing if there is no cached script content
     }
     const loadingTypes = ['head', 'body'];
     
     loadingTypes.forEach(loadingType => {
         const scriptElement = document.getElementById('custom-embed-' + loadingType);
         if (scriptElement) {
-            scriptElement.remove(); // 删除现有的script元素
+            scriptElement.remove(); // Remove existing script element
         }
 
         const newScriptElement = document.createElement('script');
         newScriptElement.id = 'custom-embed-' + loadingType;
         const script = cachedScriptContent[loadingType];
         
-        // 增加判断：只有当脚本内容不为空且不为空字符串时才执行插入操作
+        // Check if the script content is not null and not an empty string before inserting
         if (!script || script.trim() === '') {
             return;
         }
         
-        newScriptElement.innerHTML = script; // 插入缓存的脚本内容
+        newScriptElement.innerHTML = script; // Insert the cached script content
         
         if (loadingType === 'head') {
-            // 插入到head标签的最后面
+            // Insert into the end of the head tag
             document.head.appendChild(newScriptElement);
         } else {
-            // 插入到body中
+            // Insert into the body
             document.body.appendChild(newScriptElement);
         }
     });
 }
 
 
-// 执行控制机制
+/**
+ * Executes the script loading and insertion process in a safe manner, preventing concurrent executions.
+ * Uses a flag 'isExecuting' to ensure that only one execution runs at a time.
+ */
 async function safeExecute() {
-    if (isExecuting) return; // 如果正在执行，直接返回
+    if (isExecuting) return; // Prevent concurrent executions
     isExecuting = true;
 
     try {
         await loadRemoteScript();
-        insertScript(); // 动态插入缓存的脚本
+        insertScript(); // Dynamically insert the cached script
         isInitialized = true;
     } catch (error) {
         console.error('Error during script execution:', error);
     } finally {
         setTimeout(() => {
-            isExecuting = false; // 执行完成后重置标志
+            isExecuting = false; // Reset the execution flag after a short delay
         }, 100);
     }
 }
 
-// 监听路由变化
+/**
+ * Handles route changes by comparing the current URL with the last visited URL.
+ * If the URLs are different, it triggers the 'safeExecute' function.
+ */
 function handleRouteChange() {
     const currentHref = window.location.href;
     if (currentHref !== lastHref) {
@@ -90,24 +110,32 @@ function handleRouteChange() {
     }
 }
 
-// 1. 监听history.pushState/replaceState
+// 1. Listen for history.pushState/replaceState events
 const originalPushState = history.pushState;
 const originalReplaceState = history.replaceState;
 
+/**
+ * Overrides the original 'history.pushState' function to trigger route change handling.
+ */
 history.pushState = function (...args) {
     originalPushState.apply(history, args);
     handleRouteChange();
 };
 
+/**
+ * Overrides the original 'history.replaceState' function to trigger route change handling.
+ */
 history.replaceState = function (...args) {
     originalReplaceState.apply(history, args);
     handleRouteChange();
 };
 
-// 2. 监听popstate事件（浏览器的前进/后退）
+// 2. Listen for popstate events (browser back/forward navigation)
 window.addEventListener('popstate', handleRouteChange);
 
-// 3. 监听#app子树变化
+/**
+ * Observes changes to the '#app' subtree and triggers script execution when relevant changes occur.
+ */
 function observeAppDivChanges() {
     const targetNode = document.getElementById('app');
 
@@ -126,10 +154,10 @@ function observeAppDivChanges() {
     const observer = new MutationObserver((mutationsList) => {
         const currentTime = Date.now();
         if (currentTime - lastMutationTime < DEBOUNCE_TIME) {
-            return; // 如果距离上一次变动时间小于防抖时间，直接返回
+            return; // Debounce: ignore mutations that occur too quickly
         }
 
-        lastMutationTime = currentTime; // 记录当前变动时间
+        lastMutationTime = currentTime; // Update the last mutation time
 
         const hasRelevantChange = mutationsList.some(mutation => {
             return mutation.type === 'childList';
@@ -143,12 +171,12 @@ function observeAppDivChanges() {
     observer.observe(targetNode, config);
 }
 
-// 初始执行（仅一次）
+// Initial execution (only once)
 if (!isInitialized) {
     safeExecute();
 }
 
-// 页面加载完成后调用监听方法
+// Call the listener method after the page is loaded
 window.onload = function () {
     observeAppDivChanges();
     // observeDynamicElements();
@@ -157,40 +185,45 @@ window.onload = function () {
 `;
 
 export default defineHook(({ filter, action, embed }, { services }) => {
+  // Define a hook using the defineHook function. This hook receives filter, action, and embed functions, and a services object as arguments
+
   embed(
     "head",
     `
     <script>
-    ${script}
+    ${script} // Embed the script variable content directly into the head
     </script>
-    <script id="custom-embed-header"></script>
+    <script id="custom-embed-header"></script> // Add an empty script tag with the ID "custom-embed-header" in the head
     `
-  );
+  ); 
   embed(
     "body",
     `
-    <script id="custom-embed-body"></script>
+    <script id="custom-embed-body"></script> // Add an empty script tag with the ID "custom-embed-body" in the body
     `
-  );
-  const { collectionsService, FieldsService } = services;
-
+  ); // Embed an empty script tag into the body of the Directus application
+  const { collectionsService, FieldsService } = services; 
   filter("settings.read", (items: any, meta, context) => {
-    const accountability = context.accountability;
+    // Apply a filter to the "settings.read" event. This filter allows modifying the settings items before they are read
+    const accountability = context.accountability; // Get the accountability object from the context
     items = items.map((item: any) => {
+      // Iterate over each item in the settings
       // disable ext-custom-scripts-page module,user not admin
       if (accountability?.admin != true) {
         item.module_bar = item.module_bar?.map((module: any) => {
           if (module.id === "ext-custom-scripts-page") {
-            module.enabled = false;
+            // Check if the module ID is "ext-custom-scripts-page"
+            module.enabled = false; // Disable the module if the user is not an admin
           }
           return module;
         });
       }
       const fieldsService = new FieldsService({
         schema: context.schema,
-        accountability: accountability,
+        accountability: accountability, // Pass the accountability object
       });
       if (item?.ext_custom_scripts_page_settings == undefined||item?.ext_custom_scripts_page_settings == null) {
+        // Check if the ext_custom_scripts_page_settings field is undefined or null
         fieldsService.createField('directus_settings', {
             "field": "ext_custom_scripts_page_settings",
             "type": "json",
