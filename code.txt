@@ -1,0 +1,1879 @@
+
+#--- Code from: src/custom-javascript-page/components/navigation.vue ---
+<template>
+    <v-list nav v-if="pages">
+      <v-list-item v-for="navItem in pages" :key="navItem.to" :active="navItem.uri == current" :to="navItem.to">
+        <v-list-item-icon><v-icon :name="navItem.icon" :color="navItem.color" /></v-list-item-icon>
+        <v-list-item-content>
+          <v-text-overflow :text="navItem.label" />
+        </v-list-item-content>
+      </v-list-item>
+    </v-list>
+  </template>
+  
+  <script>
+  export default {
+    name: 'PageNavigation',
+    inheritAttrs: false,
+    props: {
+      current: {
+        type: String,
+        default: null,
+      },
+      pages: {
+        type: Array,
+        default: [],
+      },
+    },
+  }
+  </script>
+  
+
+#--- Code from: src/custom-javascript-page/index.ts ---
+//@ts-ignore
+import ModuleComponent from './module.vue';
+
+export default {
+  id: 'ext-custom-scripts-page', // root URI
+  name: 'Custom Scripts&Page',
+  icon: 'handyman',
+  routes: [
+    {
+      path: '',
+      redirect: '/ext-custom-scripts-page/home' // Add this redirect
+    },
+    {
+      path: 'home',
+      props: { page: 'home' },
+      component: ModuleComponent,
+    },
+    {
+      name: 'page',
+      path: ':page',
+      props: true,
+      component: ModuleComponent,
+    },
+  ],
+};
+
+
+
+#--- Code from: src/custom-javascript-page/module.vue ---
+<template>
+    <private-view :title="page_title">
+        <template v-if="breadcrumb" #headline>
+            <v-breadcrumb :items="breadcrumb" />
+        </template>
+
+        <template #navigation>
+            <page-navigation :current="page" :pages="all_pages" />
+        </template>
+
+        <div class="lp-container">
+            <component :is="currentComponent" v-if="currentComponent" :banner="page_banner" />
+
+            <div class="lp-cards" v-if="page_cards && isHomeView">
+                <div class="lp-card" v-for="card in page_cards.filter(item => (item.uri != page))" :key="card.uri"
+                    :style="`background-color: ${card.color}`" @click="change_page(card.to)">
+                    <v-icon :name="card.icon" />
+                    <span class="lp-card-title">{{ card.label }}</span>
+                </div>
+            </div>
+        </div>
+    </private-view>
+</template>
+
+<script>
+import { ref, watch, computed } from 'vue';
+import { useApi } from '@directus/extensions-sdk';
+import { useRouter } from 'vue-router';
+import PageNavigation from './components/navigation.vue';
+import useDirectusToken from './use-directus-token.js';
+import AdminScripts from './pages/admin-scripts.vue';
+import AppScripts from './pages/app-scripts.vue';
+import CustomPage from './pages/custom-page.vue';
+
+import HomePage from './pages/home.vue';
+
+export default {
+    components: {
+        PageNavigation,
+        AdminScripts,
+        AppScripts,
+        CustomPage,
+        HomePage // Add this
+    },
+    props: {
+        page: {
+            type: String,
+            default: 'home',
+        },
+    },
+    setup(props) {
+        const router = useRouter();
+        const api = useApi();
+        // const { addTokenToURL } = useDirectusToken(api);
+
+        const page_title = ref('');
+        const page_banner = ref('');
+        const page_cards = ref([]);
+        const breadcrumb = ref([{ name: 'Custom Scripts', to: "" }]);
+        const all_pages = ref([]);
+
+        const currentComponent = computed(() => {
+            switch (props.page) {
+                case 'admin-scripts': return 'AdminScripts';
+                case 'app-scripts': return 'AppScripts';
+                case 'custom-pages': return 'CustomPage';
+                case 'home': return 'HomePage';
+                default: return null;
+            }
+        });
+
+        const isHomeView = computed(() => !currentComponent.value);
+
+        fetch_all_pages();
+        render_page(props.page);
+
+        watch(
+            () => props.page,
+            () => render_page(props.page)
+        );
+
+        function change_page(to) {
+            const next = router.resolve(`${to}`);
+            router.push(next);
+        }
+
+        function render_page(page) {
+            if (page === null) {
+                page_title.value = '500: Internal Server Error';
+                breadcrumb.value.splice(1, 1);
+                page_banner.value = '';
+            } else {
+                switch (page) {
+                    case 'admin-scripts':
+                        page_title.value = 'Custom Admin Scripts';
+                        break;
+                    case 'app-scripts':
+                        page_title.value = 'Custom App Scripts';
+                        break;
+                    case 'custom-pages':
+                        page_title.value = 'Custom Public Page';
+                        break;
+                    case 'home':
+                        page_title.value = 'Home';
+                        break;
+                    default:
+                        page_title.value = '404: Not Found';
+                }
+
+                if (page === 'home') {
+                    breadcrumb.value.splice(1, 1);
+                } else {
+                    breadcrumb.value[1] = {
+                        name: page_title.value,
+                        to: `/ext-custom-scripts-page/${page}`,
+                    };
+                }
+            }
+        }
+
+        function fetch_all_pages() {
+            all_pages.value = [
+                {
+                    label: 'Home',
+                    uri: 'home',
+                    to: '/ext-custom-scripts-page/home',
+                    icon: 'home',
+                    color: '#10c96a',
+                },
+                {
+                    label: 'Admin Script',
+                    uri: 'admin-scripts',
+                    to: '/ext-custom-scripts-page/admin-scripts',
+                    icon: 'settings_accessibility',
+                    color: '#10b6c9',
+                },
+                {
+                    label: 'App Script',
+                    uri: 'app-scripts',
+                    to: '/ext-custom-scripts-page/app-scripts',
+                    icon: 'terminal',
+                    color: '#107cc9',
+                },
+                {
+                    label: 'Custom Page',
+                    uri: 'custom-pages',
+                    to: '/ext-custom-scripts-page/custom-pages',
+                    icon: 'html',
+                    color: '#8510c9',
+                },
+            ];
+        }
+
+
+        return {
+            page_title,
+            page_banner,
+            page_cards,
+            breadcrumb,
+            all_pages,
+            change_page,
+            currentComponent,
+            isHomeView
+        };
+    },
+};
+</script>
+
+<style lang="scss">
+.lp-container {
+    padding: var(--content-padding);
+    padding-top: 0;
+    width: 100%;
+
+    &>div {
+        margin-bottom: var(--content-padding);
+    }
+}
+
+.lp-banner {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+
+    img {
+        display: block;
+        width: 100%;
+    }
+}
+
+.lp-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    column-gap: var(--input-padding);
+    row-gap: var(--input-padding);
+
+    .lp-card {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border-radius: var(--border-radius);
+        padding: var(--input-padding);
+        color: white;
+
+        .v-icon {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 6px;
+
+            i {
+                font-size: 50px;
+                color: white;
+            }
+        }
+
+        .lp-card-title {
+            display: block;
+            font-weight: bold;
+            font-size: 1.4em;
+            line-height: 1.2;
+        }
+    }
+}
+</style>
+
+#--- Code from: src/custom-javascript-page/pages/admin-scripts.vue ---
+<template>
+    <div class="cus-script-content">
+        <!-- Head Script Textarea -->
+        <div class="cus-script-edit">
+            <span class="cus-script-title">Head Script</span>
+            <div>
+                <v-textarea v-model="scriptsData.head" :full-width="true" :trim="true" placeholder="Enter head script"
+                    :nullable="false" />
+            </div>
+        </div>
+        <!-- Body Script Textarea -->
+        <div class="cus-script-edit">
+            <span class="cus-script-title">Body Script</span>
+            <div>
+                <v-textarea v-model="scriptsData.body" :full-width="true" :trim="true" placeholder="Enter body script"
+                    :nullable="false" />
+            </div>
+            <!-- Save Button -->
+            <div class="cus-save-button">
+                <v-button @click="saveScripts" :disabled="!hasChanges" :loading="saving" :small="true" :rounded="false"
+                    :outlined="false" :icon="false" :autofocus="false">
+                    Save
+                </v-button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import { ref, computed, onMounted } from 'vue';
+import { useApi } from '@directus/extensions-sdk';
+import { useI18n } from 'vue-i18n';
+
+export default {
+    props: {
+        banner: {
+            type: String,
+            default: ''
+        }
+    },
+    setup() {
+        const { t } = useI18n();
+        const api = useApi();
+
+        const scriptsData = ref({
+            head: '',
+            body: ''
+        });
+        const originalData = ref(null);
+        const saving = ref(false);
+
+        const hasChanges = computed(() => {
+            if (!originalData.value) return false;
+            return (
+                scriptsData.value.head !== originalData.value.head ||
+                scriptsData.value.body !== originalData.value.body
+            );
+        });
+
+        async function loadScripts() {
+            try {
+                const response = await api.get('/settings');
+                const settings = response.data.data;
+
+                if (settings.ext_custom_scripts_page_settings) {
+                    const scripts = settings.ext_custom_scripts_page_settings;
+                    originalData.value = scripts.isAdmin;
+                    scriptsData.value = {
+                        head: scripts.isAdmin.head,
+                        body: scripts.isAdmin.body
+                    };
+                }
+            } catch (error) {
+                console.error('Failed to load scripts:', error);
+            }
+        }
+
+        async function saveScripts() {
+            saving.value = true;
+            try {
+                // Get current settings first
+                const response = await api.get('/settings');
+                const currentSettings = response.data.data;
+                let scripts = {};
+
+                if (currentSettings.ext_custom_scripts_page_settings) {
+                    scripts = currentSettings.ext_custom_scripts_page_settings;
+                }
+
+                // Update the admin scripts
+                scripts.isAdmin = {
+                    head: scriptsData.value.head,
+                    body: scriptsData.value.body
+                };
+
+                // Save back to Directus
+                await api.patch('/settings', {
+                    ext_custom_scripts_page_settings: JSON.stringify(scripts)
+                });
+
+                // Update original data to reflect the saved state
+                originalData.value = { ...scriptsData.value };
+
+                // Optionally show success notification here
+                // notify.success('Scripts saved successfully');
+            } catch (error) {
+                console.error('Failed to save scripts:', error);
+                // Optionally show error notification here
+                // notify.error('Failed to save scripts');
+            } finally {
+                saving.value = false;
+            }
+        }
+
+        onMounted(() => {
+            loadScripts();
+        });
+
+        return {
+            t,
+            scriptsData,
+            saving,
+            hasChanges,
+            saveScripts
+        };
+    }
+};
+</script>
+
+<style lang="scss">
+.cus-script-content {
+    margin: 0 auto;
+
+    .cus-script-edit {
+        margin-bottom: 2rem;
+    }
+
+    .cus-script-title {
+        font-weight: bold;
+        font-size: larger;
+        margin-bottom: 0.5rem;
+    }
+
+    .v-input.textarea {
+        font-family: monospace;
+        font-size: 14px;
+    }
+
+    .cus-save-button {
+        margin-top: 20px;
+        text-align: right;
+    }
+}
+</style>
+
+
+#--- Code from: src/custom-javascript-page/pages/app-scripts.vue ---
+<template>
+    <div class="cus-script-content">
+        <!-- Head Script Textarea -->
+        <div class="cus-script-edit">
+            <span class="cus-script-title">Head Script</span>
+            <div>
+                <v-textarea v-model="scriptsData.head" :full-width="true" :trim="true" placeholder="Enter head script"
+                    :nullable="false" />
+            </div>
+        </div>
+        <!-- Body Script Textarea -->
+        <div class="cus-script-edit">
+            <span class="cus-script-title">Body Script</span>
+            <div>
+                <v-textarea v-model="scriptsData.body" :full-width="true" :trim="true" placeholder="Enter body script"
+                    :nullable="false" />
+            </div>
+            <!-- Save Button -->
+            <div class="cus-save-button">
+                <v-button @click="saveScripts" :disabled="!hasChanges" :loading="saving" :small="true" :rounded="false"
+                    :outlined="false" :icon="false" :autofocus="false">
+                    Save
+                </v-button>
+            </div>
+        </div>
+
+
+    </div>
+</template>
+
+<script>
+import { ref, computed, onMounted } from 'vue';
+import { useApi } from '@directus/extensions-sdk';
+import { useI18n } from 'vue-i18n';
+
+export default {
+    props: {
+        banner: {
+            type: String,
+            default: ''
+        }
+    },
+    setup() {
+        const { t } = useI18n();
+        const api = useApi();
+
+        const scriptsData = ref({
+            head: '',
+            body: ''
+        });
+        const originalData = ref(null);
+        const saving = ref(false);
+
+        const hasChanges = computed(() => {
+            if (!originalData.value) return false;
+            return (
+                scriptsData.value.head !== originalData.value.head ||
+                scriptsData.value.body !== originalData.value.body
+            );
+        });
+
+        async function loadScripts() {
+            try {
+                const response = await api.get('/settings/get');
+                const settings = response.data.data;
+
+                if (settings.ext_custom_scripts_page_settings) {
+                    const scripts = settings.ext_custom_scripts_page_settings;
+                    originalData.value = scripts.notAdmin;
+                    scriptsData.value = {
+                        head: scripts.notAdmin.head,
+                        body: scripts.notAdmin.body
+                    };
+                }
+            } catch (error) {
+                console.error('Failed to load scripts:', error);
+            }
+        }
+
+        async function saveScripts() {
+            saving.value = true;
+            try {
+                // Get current settings first
+                const response = await api.get('/settings');
+                const currentSettings = response.data.data;
+                let scripts = {};
+
+                if (currentSettings.ext_custom_scripts_page_settings) {
+                    scripts = currentSettings.ext_custom_scripts_page_settings;
+                }
+
+                // Update the admin scripts
+                scripts.notAdmin = {
+                    head: scriptsData.value.head,
+                    body: scriptsData.value.body
+                };
+
+                // Save back to Directus
+                await api.patch('/settings', {
+                    ext_custom_scripts_page_settings: JSON.stringify(scripts)
+                });
+
+                // Update original data to reflect the saved state
+                originalData.value = { ...scriptsData.value };
+
+                // Optionally show success notification here
+                // notify.success('Scripts saved successfully');
+            } catch (error) {
+                console.error('Failed to save scripts:', error);
+                // Optionally show error notification here
+                // notify.error('Failed to save scripts');
+            } finally {
+                saving.value = false;
+            }
+        }
+
+        onMounted(() => {
+            loadScripts();
+        });
+
+        return {
+            t,
+            scriptsData,
+            saving,
+            hasChanges,
+            saveScripts
+        };
+    }
+};
+</script>
+
+<style lang="scss">
+.cus-script-content {
+    margin: 0 auto;
+
+    .cus-script-edit {
+        margin-bottom: 2rem;
+    }
+
+    .cus-script-title {
+        font-weight: bold;
+        font-size: larger;
+        margin-bottom: 0.5rem;
+    }
+
+    .v-input.textarea {
+        font-family: monospace;
+        font-size: 14px;
+    }
+
+    .cus-save-button {
+        margin-top: 20px;
+        text-align: right;
+    }
+}
+</style>
+
+
+#--- Code from: src/custom-javascript-page/pages/custom-page.vue ---
+<template>
+    <div class="cus-script-content">
+        <div class="cus-script-row">
+            <!-- HTML Content Editor -->
+            <div class="cus-script-edit">
+                <span class="cus-script-title">HTML Content</span>
+                <v-textarea v-model="htmlContent" :full-width="true" :trim="false" placeholder="Enter HTML content"
+                    :nullable="false" />
+                <!-- Action Buttons -->
+                <div class="cus-save-button">
+                    <v-button @click="saveContent" :disabled="!hasChanges" :loading="saving" :small="true"
+                        :rounded="false" :outlined="false" :icon="false">
+                        Save
+                    </v-button>
+                </div>
+            </div>
+
+            <!-- Preview Area -->
+            <div class="cus-script-preview">
+                <span class="cus-script-title">Preview</span>
+                <iframe ref="previewFrame" class="cus-script-preview-iframe" :srcdoc="previewContent"></iframe>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import { ref, computed, onMounted, watch } from 'vue';
+import { useApi } from '@directus/extensions-sdk';
+import { useI18n } from 'vue-i18n';
+
+export default {
+    setup() {
+        const { t } = useI18n();
+        const api = useApi();
+
+        // Reactive reference for the HTML content.
+        const htmlContent = ref('');
+        // Reactive reference to store the original HTML content for change detection.
+        const originalContent = ref('');
+        // Reactive reference to indicate whether the content is being saved.
+        const saving = ref(false);
+        // Reactive reference for the iframe element, allowing access to it.
+        const previewFrame = ref(null);
+
+        // Computed property to check if there are any changes in the HTML content.
+        const hasChanges = computed(() => {
+            return htmlContent.value !== originalContent.value;
+        });
+
+        // Computed property to generate the preview content.
+        const previewContent = computed(() => {
+            return htmlContent.value;
+        });
+
+        // Function to load the HTML content from the API.
+        async function loadContent() {
+            try {
+                // Fetch HTML content from the extension endpoint.
+                const response = await api.get('/custompage/setting/get');
+                htmlContent.value = response.data || '';
+                originalContent.value = response.data || '';
+            } catch (error) {
+                console.error('Failed to load HTML content:', error);
+                // If loading fails, initialize with an empty string.
+                htmlContent.value = '';
+                originalContent.value = '';
+            }
+        }
+
+        // Function to save the HTML content via the API.
+        async function saveContent() {
+            saving.value = true;
+            try {
+                // Post HTML content to the extension endpoint for saving.
+                await api.post('/custompage/setting/save', {
+                    page: htmlContent.value,
+                });
+
+                // Update the original content to reflect the saved state.
+                originalContent.value = htmlContent.value;
+
+                // Add a success notification here if needed.
+                // notify.success('Content saved successfully');
+            } catch (error) {
+                console.error('Failed to save content:', error);
+                // Add an error notification here if needed.
+                // notify.error('Failed to save content');
+            } finally {
+                saving.value = false;
+            }
+        }
+
+        // Watch the htmlContent for changes and automatically refresh the preview.
+        watch(htmlContent, () => {
+            // Add throttling logic here to avoid frequent updates if needed.
+            // For example: use setTimeout to delay the update.
+            // setTimeout(() => {
+            //   updatePreview();
+            // }, 500);
+            updatePreview();
+        });
+
+        // Function to update the content of the preview iframe.
+        function updatePreview() {
+            if (previewFrame.value) {
+                // No need to manually set innerHTML because :srcdoc is used.
+                // previewFrame.value.contentDocument.body.innerHTML = htmlContent.value;
+            }
+        }
+
+        // Lifecycle hook that is called when the component is mounted.
+        onMounted(() => {
+            loadContent();
+        });
+
+        return {
+            t,
+            htmlContent,
+            saving,
+            hasChanges,
+            saveContent,
+            previewContent, // Expose the preview content
+            previewFrame, // Expose the iframe reference
+        };
+    },
+};
+</script>
+
+
+<style lang="scss">
+.cus-script-content {
+    margin: 0 auto;
+    height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+
+    .cus-script-row {
+        display: flex;
+        flex: 1;
+    }
+
+    .cus-script-edit {
+        width: 30%;
+        padding: 1rem;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cus-script-preview {
+        width: 70%;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    .cus-script-title {
+        font-weight: bold;
+        font-size: larger;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .v-textarea {
+        font-family: monospace;
+        font-size: 14px;
+        flex: 1;
+    }
+
+    .cus-script-preview-iframe {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+    }
+
+    .cus-save-button {
+        margin-top: 20px;
+        text-align: right;
+    }
+}
+</style>
+
+
+#--- Code from: src/custom-javascript-page/pages/home.vue ---
+<template>
+  <div class="home-page">
+    <!-- Welcome Message -->
+    <div class="welcome-message">
+      <h2>Welcome to Custom Scripts & Pages</h2>
+    </div>
+
+    <!-- Security Warning Message -->
+    <div class="warning-message">
+      <div class="warning-icon">
+        <v-icon name="warning" />
+      </div>
+      <div class="warning-content">
+        <h3>Security Warning</h3>
+        <p>When injecting custom scripts or HTML:</p>
+        <ul>
+          <li>Only use code from trusted sources</li>
+          <li>Malicious code can compromise your Directus instance</li>
+          <li>Unauthorized scripts may expose sensitive data</li>
+          <li>Improper HTML can break your admin interface</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Usage Instructions Section -->
+    <div class="usage-section">
+      <div class="usage-content">
+        <h3>
+          <v-icon name="help_outline" class="icon" />
+          Usage Instructions
+        </h3>
+
+        <!-- Custom Pages Instructions -->
+        <div class="usage-item">
+          <h4>Custom Pages</h4>
+          <ul>
+            <li>The extension will automatically create a <code>public/page</code> directory in your Directus root folder upon first installation.</li>
+            <li>An initial <code>index.html</code> file will be created in the page directory.</li>
+            <li>Access your custom pages via <code>/custompage/view</code> endpoint.</li>
+            <!-- New Rule: Describe the .disable file for access restriction -->
+            <li>Access restriction for custom pages is managed via a <code>.disable</code> file within the <code>public/page</code> directory. If this file exists, access is denied.</li>
+          </ul>
+        </div>
+
+        <!-- Custom Scripts Instructions -->
+        <div class="usage-item">
+          <h4>Custom Scripts</h4>
+          <ul>
+            <li>Access custom JavaScript scripts via <code>/customjs/scripts</code> endpoint.</li>
+            <li>The endpoint returns a JSON object containing scripts for both <code>head</code> and <code>body</code> sections.</li>
+            <li>Scripts are automatically filtered based on user permissions (admin vs non-admin).</li>
+            <li>Admin user scripts take priority when available.</li>
+          </ul>
+        </div>
+
+        <!-- New Rule: Describe Settings Storage -->
+        <div class="usage-item">
+          <h4>Extension Settings</h4>
+          <ul>
+            <li>Automatically creates a JSON field <code>ext_custom_scripts_page_settings</code> in the <code>directus_settings</code> collection to store adminScript, appScript content, and access permissions.</li>
+          </ul>
+        </div>
+
+        <!-- Security Configuration Instructions -->
+        <div class="usage-item">
+          <h4>Security Configuration</h4>
+          <ul>
+            <li>To execute custom scripts, add this to your environment variables:</li>
+            <li><code>CONTENT_SECURITY_POLICY_DIRECTIVES__SCRIPT_SRC="'self' 'unsafe-inline' 'unsafe-eval'"</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle Control Area -->
+    <div class="toggle-grid">
+      <div class="toggle-item">
+        <h4>Admin Script</h4>
+        <div class="custom-switch" @click="toggleAdminScript">
+          <div class="switch-track" :class="{ active: adminScriptActive }">
+            <div class="switch-thumb"></div>
+          </div>
+          <span>{{ adminScriptActive ? 'ON' : 'OFF' }}</span>
+        </div>
+      </div>
+
+      <div class="toggle-item">
+        <h4>App Script</h4>
+        <div class="custom-switch" @click="toggleAppScript">
+          <div class="switch-track" :class="{ active: appScriptActive }">
+            <div class="switch-thumb"></div>
+          </div>
+          <span>{{ appScriptActive ? 'ON' : 'OFF' }}</span>
+        </div>
+      </div>
+
+      <div class="toggle-item">
+        <h4>Custom HTML</h4>
+        <div class="custom-switch" @click="toggleCustomHtml">
+          <div class="switch-track" :class="{ active: customHtmlActive }">
+            <div class="switch-thumb"></div>
+          </div>
+          <span>{{ customHtmlActive ? 'ON' : 'OFF' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+
+<script>
+import { ref, computed, onMounted } from 'vue';
+import { useApi } from '@directus/extensions-sdk';
+import { useI18n } from 'vue-i18n';
+
+export default {
+  setup() {
+    const { t } = useI18n();
+    const api = useApi();
+
+    // Reactive state
+    const adminScriptActive = ref(false);
+    const appScriptActive = ref(false);
+    const customHtmlActive = ref(false);
+    const isLoading = ref(false);
+
+    // Computed properties
+    const hasAdminChanges = computed(() => adminScriptActive.value !== originalAdminValue.value);
+    const hasAppChanges = computed(() => appScriptActive.value !== originalAppValue.value);
+    const hasCustomHtmlChanges = computed(() => customHtmlActive.value !== originalCustomHtmlValue.value);
+
+    // Original values for comparison
+    const originalAdminValue = ref(null);
+    const originalAppValue = ref(null);
+    const originalCustomHtmlValue = ref(null);
+
+    // Methods
+    async function loadSettings() {
+      try {
+        isLoading.value = true;
+        const response = await api.get('/settings');
+        // Get custom page status
+        const pageVisible = await api.post('/custompage/setting/status')
+        const settings = response.data.data;
+        const pageStatus = pageVisible.data.data.visible;
+        if (settings.ext_custom_scripts_page_settings) {
+          const savedSettings = settings.ext_custom_scripts_page_settings;
+          
+          adminScriptActive.value = savedSettings.adminScript || false;
+          appScriptActive.value = savedSettings.appScript || false;
+          customHtmlActive.value = pageVisible.data.data.visible || false;
+          
+          originalAdminValue.value = savedSettings.adminScript;
+          originalAppValue.value = savedSettings.appScript;
+          originalCustomHtmlValue.value = pageVisible.data.data.visible;
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
+    async function toggleAdminScript() {
+      adminScriptActive.value = !adminScriptActive.value;
+      await saveSetting('adminScript', adminScriptActive.value);
+    }
+
+    async function toggleAppScript() {
+      appScriptActive.value = !appScriptActive.value;
+      await saveSetting('appScript', appScriptActive.value);
+    }
+
+    async function toggleCustomHtml() {
+      customHtmlActive.value = !customHtmlActive.value;
+      await saveSetting('customPage', customHtmlActive.value);
+    }
+
+    async function saveSetting(key, value) {
+      try {
+        // Get current settings first
+        const response = await api.get('/settings');
+        const currentSettings = response.data.data;
+        let settings = {};
+
+        if (currentSettings.ext_custom_scripts_page_settings) {
+          settings = currentSettings.ext_custom_scripts_page_settings;
+        }
+
+        // Update the specific setting
+        settings[key] = value;
+        // Upadte custom page status
+        if (key === 'customPage') {
+          await api.post('/custompage/setting/disable', {
+            visible: value
+          });
+        }
+        // Save back to Directus
+        await api.patch('/settings', {
+          ext_custom_scripts_page_settings: JSON.stringify(settings)
+        });
+
+        // Update original values after successful save
+        if (key === 'adminScript') originalAdminValue.value = value;
+        if (key === 'appScript') originalAppValue.value = value;
+        if (key === 'customPage') originalCustomHtmlValue.value = value;
+      } catch (error) {
+        console.error(`Failed to save ${key}:`, error);
+        // Revert the toggle if save fails
+        if (key === 'adminScript') adminScriptActive.value = !value;
+        if (key === 'appScript') appScriptActive.value = !value;
+        if (key === 'customPage') customHtmlActive.value = !value;
+      }
+    }
+
+    // Lifecycle hook
+    onMounted(() => {
+      loadSettings();
+    });
+
+    return {
+      t,
+      adminScriptActive,
+      appScriptActive,
+      customHtmlActive,
+      isLoading,
+      hasAdminChanges,
+      hasAppChanges,
+      hasCustomHtmlChanges,
+      toggleAdminScript,
+      toggleAppScript,
+      toggleCustomHtml
+    };
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.home-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+
+  .welcome-message {
+    text-align: center;
+    margin: 2rem 0;
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: var(--foreground-subdued);
+    }
+  }
+
+  .warning-message {
+    display: flex;
+    background-color: var(--warning-10);
+    border: 1px solid var(--warning-25);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 2rem;
+
+    .warning-icon {
+      margin-right: 1rem;
+      color: var(--warning);
+    }
+
+    .warning-content {
+      h3 {
+        color: var(--warning);
+        margin-bottom: 0.5rem;
+      }
+
+      ul {
+        margin-top: 0.5rem;
+        padding-left: 1.5rem;
+
+        li {
+          margin-bottom: 0.25rem;
+          color: var(--foreground-subdued);
+        }
+      }
+    }
+  }
+
+  .usage-section .icon {
+    color: var(--primary);
+  }
+
+  .usage-content {
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+  }
+
+  .usage-item {
+    margin-bottom: 20px;
+  }
+
+  .usage-item h4 {
+    color: var(--primary);
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .usage-item ul {
+    margin-left: 20px;
+    color: #555;
+  }
+
+  .usage-item li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .usage-item code {
+    background-color: #e8e8e8;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+
+  .usage-section {
+    margin-bottom: 2rem;
+
+    h3 {
+      margin-bottom: 1rem;
+    }
+
+    .usage-content {
+      min-height: 100px;
+      border: 1px dashed var(--border-normal);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+    }
+  }
+
+  .toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+
+    .toggle-item {
+      background: var(--background-subdued);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      text-align: center;
+
+      h4 {
+        margin-bottom: 1rem;
+      }
+
+      .custom-switch {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        .switch-track {
+          width: 50px;
+          height: 24px;
+          background-color: var(--danger);
+          border-radius: 12px;
+          position: relative;
+          transition: background-color 0.2s;
+          margin-right: 0.5rem;
+
+          &.active {
+            background-color: var(--success);
+
+            .switch-thumb {
+              transform: translateX(26px);
+              background-color: white;
+
+            }
+          }
+
+          .switch-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+          }
+        }
+      }
+    }
+  }
+}
+</style>
+
+
+#--- Code from: src/custom-javascript-page/use-directus-token.js ---
+export default function useDirectusToken(directusApi) {
+    return {
+      addQueryToPath,
+      getToken,
+      addTokenToURL,
+    };
+  
+    function addQueryToPath(path, query) {
+      const queryParams = [];
+  
+      for (const [key, value] of Object.entries(query)) {
+        queryParams.push(`${key}=${value}`);
+      }
+  
+      return path.includes('?') ? `${path}&${queryParams.join('&')}` : `${path}?${queryParams.join('&')}`;
+    }
+  
+    function getToken() {
+      return (
+        directusApi.defaults?.headers?.['Authorization']?.split(' ')[1] ||
+        directusApi.defaults?.headers?.common?.['Authorization']?.split(' ')[1] ||
+        null
+      );
+    }
+  
+    function addTokenToURL(url) {
+      const accessToken = getToken();
+      if (!accessToken) return url;
+      return addQueryToPath(url, {
+        access_token: accessToken,
+      });
+    }
+  }
+  
+
+#--- Code from: src/embed-scripts-hook/index.ts ---
+import { defineHook } from "@directus/extensions-sdk";
+
+const script = `
+let isExecuting = false;
+let isInitialized = false;
+let lastHref = window.location.href;
+let cachedScriptContent = null; // 缓存远程脚本内容
+let lastMutationTime = 0; // 记录上一次变动的时间
+const DEBOUNCE_TIME = 300; // 防抖时间（单位：毫秒）
+// 请求并缓存远程脚本
+function loadRemoteScript() {
+    if (cachedScriptContent&&cachedScriptContent!=='') {
+        return Promise.resolve(cachedScriptContent); // 如果已缓存，直接返回
+    }
+
+    return fetch('/customjs/scripts')
+        .then(response => response.text())
+        .then(scriptContent => {
+            if (scriptContent === '') {
+                return null; // 如果脚本内容为空，返回null
+            }
+            cachedScriptContent = JSON.parse(scriptContent); // 缓存脚本内容
+            return JSON.parse(scriptContent);
+        })
+        .catch(error => {
+            console.error('Error loading remote script:', error);
+            throw error;
+        });
+}
+
+// 动态插入脚本，head类型插入到head标签最后面，body类型插入到body中
+function insertScript() {
+    if (!cachedScriptContent||cachedScriptContent==='') {
+        return; // 如果没有缓存的脚本内容，直接返回
+    }
+    const loadingTypes = ['head', 'body'];
+    
+    loadingTypes.forEach(loadingType => {
+        const scriptElement = document.getElementById('custom-embed-' + loadingType);
+        if (scriptElement) {
+            scriptElement.remove(); // 删除现有的script元素
+        }
+
+        const newScriptElement = document.createElement('script');
+        newScriptElement.id = 'custom-embed-' + loadingType;
+        const script = cachedScriptContent[loadingType];
+        
+        // 增加判断：只有当脚本内容不为空且不为空字符串时才执行插入操作
+        if (!script || script.trim() === '') {
+            return;
+        }
+        
+        newScriptElement.innerHTML = script; // 插入缓存的脚本内容
+        
+        if (loadingType === 'head') {
+            // 插入到head标签的最后面
+            document.head.appendChild(newScriptElement);
+        } else {
+            // 插入到body中
+            document.body.appendChild(newScriptElement);
+        }
+    });
+}
+
+
+// 执行控制机制
+async function safeExecute() {
+    if (isExecuting) return; // 如果正在执行，直接返回
+    isExecuting = true;
+
+    try {
+        await loadRemoteScript();
+        insertScript(); // 动态插入缓存的脚本
+        isInitialized = true;
+    } catch (error) {
+        console.error('Error during script execution:', error);
+    } finally {
+        setTimeout(() => {
+            isExecuting = false; // 执行完成后重置标志
+        }, 100);
+    }
+}
+
+// 监听路由变化
+function handleRouteChange() {
+    const currentHref = window.location.href;
+    if (currentHref !== lastHref) {
+        lastHref = currentHref;
+        safeExecute();
+    }
+}
+
+// 1. 监听history.pushState/replaceState
+const originalPushState = history.pushState;
+const originalReplaceState = history.replaceState;
+
+history.pushState = function (...args) {
+    originalPushState.apply(history, args);
+    handleRouteChange();
+};
+
+history.replaceState = function (...args) {
+    originalReplaceState.apply(history, args);
+    handleRouteChange();
+};
+
+// 2. 监听popstate事件（浏览器的前进/后退）
+window.addEventListener('popstate', handleRouteChange);
+
+// 3. 监听#app子树变化
+function observeAppDivChanges() {
+    const targetNode = document.getElementById('app');
+
+    if (!targetNode) {
+        console.error("未找到id为app的元素");
+        return;
+    }
+
+    const config = {
+        childList: true,
+        subtree: true,
+        attributes: false,
+        characterData: false,
+    };
+
+    const observer = new MutationObserver((mutationsList) => {
+        const currentTime = Date.now();
+        if (currentTime - lastMutationTime < DEBOUNCE_TIME) {
+            return; // 如果距离上一次变动时间小于防抖时间，直接返回
+        }
+
+        lastMutationTime = currentTime; // 记录当前变动时间
+
+        const hasRelevantChange = mutationsList.some(mutation => {
+            return mutation.type === 'childList';
+        });
+
+        if (hasRelevantChange && isInitialized) {
+            safeExecute();
+        }
+    });
+
+    observer.observe(targetNode, config);
+}
+
+// 初始执行（仅一次）
+if (!isInitialized) {
+    safeExecute();
+}
+
+// 页面加载完成后调用监听方法
+window.onload = function () {
+    observeAppDivChanges();
+    // observeDynamicElements();
+};
+
+`;
+
+export default defineHook(({ filter, action, embed }, { services }) => {
+  embed(
+    "head",
+    `
+    <script>
+    ${script}
+    </script>
+    <script id="custom-embed-header"></script>
+    `
+  );
+  embed(
+    "body",
+    `
+    <script id="custom-embed-body"></script>
+    `
+  );
+  const { collectionsService, FieldsService } = services;
+
+  filter("settings.read", (items: any, meta, context) => {
+    const accountability = context.accountability;
+    items = items.map((item: any) => {
+      // disable ext-custom-scripts-page module,user not admin
+      if (accountability?.admin != true) {
+        item.module_bar = item.module_bar?.map((module: any) => {
+          if (module.id === "ext-custom-scripts-page") {
+            module.enabled = false;
+          }
+          return module;
+        });
+      }
+      const fieldsService = new FieldsService({
+        schema: context.schema,
+        accountability: accountability,
+      });
+      if (item?.ext_custom_scripts_page_settings == undefined||item?.ext_custom_scripts_page_settings == null) {
+        fieldsService.createField('directus_settings', {
+            "field": "ext_custom_scripts_page_settings",
+            "type": "json",
+            "meta": {
+                "special": [
+                    "cast-json"
+                ],
+                "interface": "input-code",
+                "options": {
+                    "template": ""
+                },
+                "display": null,
+                "display_options": null,
+                "readonly": false,
+                "hidden": true,
+                "sort": 8,
+                "width": "full",
+                "translations": null,
+                "note": null,
+                "conditions": null,
+                "required": false,
+                "group": null,
+                "validation": null,
+                "validation_message": null
+            },
+            "schema": {
+                "data_type": "json",
+                "default_value": JSON.stringify(
+                    {
+                        "adminScript": false,
+                        "appScript": false,
+                        "isAdmin": {
+                            "head": "console.log('head admin')",
+                            "body": "console.log('body admin')"
+                        },
+                        "notAdmin": {
+                            "head": "console.log('head not admin')",
+                            "body": "console.log('body not admin')"
+                        }
+                    }
+                ),
+                "generation_expression": null,
+                "max_length": null,
+                "numeric_precision": null,
+                "numeric_scale": null,
+                "is_generated": false,
+                "is_nullable": true,
+                "is_unique": false,
+                "is_indexed": false,
+                "is_primary_key": false,
+                "has_auto_increment": false,
+                "foreign_key_schema": null,
+                "foreign_key_table": null,
+                "foreign_key_column": null,
+                "comment": null
+            }
+        });
+      }
+      return item;
+    });
+
+    return items;
+  });
+});
+
+
+#--- Code from: src/load-page-endpoint/index.ts ---
+import { defineEndpoint } from "@directus/extensions-sdk";
+import serveStatic from "serve-static";
+import path from "path";
+import * as fflate from "fflate";
+import fs from "fs";
+import { promisify } from "util"; 
+
+const statAsync = promisify(fs.stat);
+const mkdirAsync = promisify(fs.mkdir); 
+const readFileAsync = promisify(fs.readFile);
+const writeFileAsync = promisify(fs.writeFile);
+// Define the paths for the public and public/page directories
+const __dirname = path.resolve(process.cwd()); 
+const publicDir = path.join(__dirname, "public");
+const pageDir = path.join(publicDir, "page"); 
+
+// Define the file types that should be compressed with gzip
+const compressibleTypes = [".js", ".css", ".html"];
+
+// Function to ensure a directory exists; if not, create it
+async function ensureDirectoryExists(dirPath: string) {
+  try {
+    await statAsync(dirPath); // Check if the directory exists
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      // If the directory doesn't exist, create it recursively
+      await mkdirAsync(dirPath, { recursive: true });
+      console.log(`Created directory: ${dirPath}`);
+    } else {
+      throw error;
+    }
+  }
+}
+
+// Function to ensure initial files (like index.html) exist; if not, create them
+async function ensureInitialFiles() {
+  const indexPath = path.join(pageDir, "index.html"); 
+  try {
+    await statAsync(indexPath); 
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      // If the file doesn't exist, create a default index.html file
+      const defaultHtml = `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Page</title>
+  </head>
+  <body>
+    <h1>Welcome to Custom Page</h1>
+    <p>This is a default page. You can customize it through the admin interface.</p>
+  </body>
+  </html>`;
+      await writeFileAsync(indexPath, defaultHtml); // Write the default HTML content to the file
+      console.log(`Created default index.html at ${indexPath}`);
+    } else {
+      throw error;
+    }
+  }
+}
+
+function getContentType(url: string): string {
+  if (url.endsWith(".js")) {
+    return "application/javascript";
+  }
+  if (url.endsWith(".css")) {
+    return "text/css";
+  }
+  if (url.endsWith(".html")) {
+    return "text/html";
+  }
+  return "application/octet-stream"; 
+}
+
+// Define the Directus endpoint
+export default defineEndpoint({
+  id: "custompage", // Endpoint ID
+  handler: async (router, context) => {
+    // Handler function for the endpoint
+    // Ensure the public and public/page directories exist, create them if they don't, and initialize index.html
+    try {
+      await ensureDirectoryExists(publicDir); // Ensure the public directory exists
+      await ensureDirectoryExists(pageDir); // Ensure the page directory exists
+      await ensureInitialFiles(); // Ensure the initial files exist
+    } catch (error) {
+      console.error("Failed to create directories:", error);
+      throw new Error("Unable to initialize required directories");
+    }
+
+    const { services, getSchema } = context;
+    const { ItemsService } = services;
+
+    // GZIP compression middleware
+    const gzipMiddleware = async (req, res, next) => {
+      // Check if the request is a GET request and if the client accepts gzip encoding
+      if (req.method !== "GET" || !req.acceptsEncodings("gzip")) {
+        return next(); // Skip gzip compression if not a GET request or gzip not accepted
+      }
+
+      const filePath = path.join(pageDir, req.url); // Construct the file path
+
+      try {
+        const stats = await statAsync(filePath); // Get file stats
+        if (!stats.isFile()) {
+          return next(); // Skip if it's not a file
+        }
+
+        // Check if the file type should be compressed
+        if (!compressibleTypes.some((ext) => req.url.endsWith(ext))) {
+          return next(); // Skip if the file type is not compressible
+        }
+
+        const data = await readFileAsync(filePath); // Read the file data
+
+        // Compress the data using fflate's gzipSync
+        const compressed = fflate.gzipSync(data, { level: 6 });
+
+        // Set response headers to indicate gzip encoding
+        res.setHeader("Content-Encoding", "gzip");
+        res.setHeader("Content-Type", getContentType(req.url));
+
+        res.send(Buffer.from(compressed));
+      } catch (error: any) {
+        if (error.code !== "ENOENT") {
+          console.error("GZIP compression failed:", error);
+        }
+        return next(error); 
+      }
+    };
+
+    // Serve static files from the public directory
+    const servePublic = serveStatic(pageDir);
+
+    // Use the GZIP middleware
+    router.use("/static", gzipMiddleware, servePublic); // Apply gzip middleware to the /static route
+
+    // Route to view the custom page
+    router.get("/view", async (req, res) => {
+      // Get the page visibility setting
+      let pageVisible = true;
+      const disableFilePath = path.join(pageDir, ".disable"); // Path to the .disable file
+      if (fs.existsSync(disableFilePath)) {
+        pageVisible = false; // If .disable exists, the page is not visible
+      }
+
+      if (pageVisible === false) {
+        return res.status(404).send({
+          errors: [
+            {
+              message: "Route /custompage/view doesn't exist.",
+              extensions: {
+                path: "/custompage/view",
+                code: "ROUTE_NOT_FOUND",
+              },
+            },
+          ],
+        });
+      }
+      res.sendFile(path.join(pageDir, "index.html")); 
+    });
+
+    // Route to read the HTML file and send it to the settings platform
+    router.get("/setting/get", async (req, res) => {
+      //@ts-ignore
+      const accountability = req.accountability; // Get the user's accountability
+      if (accountability?.admin === false) {
+        // If the user is not an admin, return a 404 error
+        return res.status(404).send({
+          errors: [
+            {
+              message: "Route /custompage/setting/get doesn't exist.",
+              extensions: {
+                path: "/custompage/setting/get",
+                code: "ROUTE_NOT_FOUND",
+              },
+            },
+          ],
+        });
+      }
+
+      const filePath = path.join(pageDir, "index.html");
+      try {
+        const data = await readFileAsync(filePath, "utf8"); 
+        res.setHeader("Content-Type", "text/plain");
+        res.send(data);
+      } catch (err) {
+        res.status(500).send("Internal Server Error");
+        console.error("Error reading file:", err);
+      }
+    });
+
+    // Route to receive the HTML file and save it to the public directory
+    router.post("/setting/save", async (req, res) => {
+      //@ts-ignore
+      const accountability = req.accountability; // Get the user's accountability
+      if (accountability?.admin === false) {
+        // If the user is not an admin, return a 404 error
+        return res.status(404).send({
+          errors: [
+            {
+              message: "Route /custompage/setting/save doesn't exist.",
+              extensions: {
+                path: "/custompage/setting/save",
+                code: "ROUTE_NOT_FOUND",
+              },
+            },
+          ],
+        });
+      }
+
+      const filePath = path.join(pageDir, "index.html");
+      const { page } = req.body;
+      try {
+        await writeFileAsync(filePath, page);
+        res.send({
+          message: "success",
+        });
+      } catch (err) {
+        console.error("Error writing file:", err);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+
+    // Route to check the page disable status
+    router.post("/setting/status", async (req, res) => {
+      //@ts-ignore
+      const accountability = req.accountability;
+      if (accountability?.admin === false) {
+        return res.status(404).send({
+          errors: [
+            {
+              message: "Route /custompage/disable doesn't exist.",
+              extensions: {
+                path: "/custompage/disable",
+                code: "ROUTE_NOT_FOUND",
+              },
+            },
+          ],
+        });
+      }
+      const disableFilePath = path.join(pageDir, ".disable"); // Path to the .disable file
+      if (fs.existsSync(disableFilePath)) {
+        // If the .disable file exists, the page is disabled
+        res.send({
+          data: {
+            visible: false,
+            message:
+              "Custom Page is disabled, you can enable it in the settings page.",
+          },
+        });
+      }
+      res.send({
+        data: {
+          visible: true,
+          message: "Custom Page is enabled.",
+        },
+      });
+    });
+
+    // Route to disable the custom page
+    router.post("/setting/disable", async (req, res) => {
+      //@ts-ignore
+      const accountability = req.accountability;
+      if (accountability?.admin === false) {
+        // If the user is not an admin, return a 404 error
+        return res.status(404).send({
+          errors: [
+            {
+              message: "Route /custompage/disable doesn't exist.",
+              extensions: {
+                path: "/custompage/disable",
+                code: "ROUTE_NOT_FOUND",
+              },
+            },
+          ],
+        });
+      }
+
+      const disableFilePath = path.join(pageDir, ".disable"); 
+      const { visible } = req.body; 
+
+      try {
+        if (visible === false) {
+          // If visible is false, create the .disable file
+          await writeFileAsync(disableFilePath, "1145141919810"); // Create .disable file with specified content
+          return res.send({
+            data: {
+              visible: false,
+              message:
+                "Custom Page is disabled, you can enable it in the settings page.",
+            },
+          });
+        } else if (visible === true) {
+          // If visible is true, delete the .disable file
+          if (fs.existsSync(disableFilePath)) {
+            // Check if file exists before attempting to delete
+            fs.unlink(disableFilePath, function (err) {
+              if (err) throw err;
+            });
+            return res.send({
+              data: {
+                visible: true,
+                message: "Custom Page is enabled.",
+              },
+            });
+          }
+        } else {
+          // If visible is not a boolean, return an error
+          return res.status(400).send({
+            errors: [
+              {
+                message: "Invalid visible value. Must be boolean.",
+                extensions: {
+                  code: "INVALID_PAYLOAD",
+                },
+              },
+            ],
+          });
+        }
+      } catch (err) {
+        console.error("Error handling disable file:", err);
+        return res.status(500).send("Internal Server Error"); // Send an error response
+      }
+    });
+  },
+});
+
+
+#--- Code from: src/load-scripts-endpoint/index.ts ---
+import { defineEndpoint } from "@directus/extensions-sdk"; 
+
+export default defineEndpoint({
+  id: "customjs",
+  handler: (router, context) => {
+    // Handler function for the endpoint
+    const { services, getSchema } = context; // Destructure services and getSchema from the context
+    const { ItemsService } = services; // Destructure ItemsService from the services
+
+    router.get("/scripts", async (req, res) => {
+      let scripts = {
+        adminScript: false,
+        appScript: false,
+        customPage: false,
+        isAdmin: {
+          head: "",
+          body: "",
+        },
+        notAdmin: {
+          head: "",
+          body: "",
+        },
+      };
+      //@ts-ignore
+      const accountability = req.accountability; // Get the user's accountability from the request
+
+      // If the user is not logged in, return an empty script
+      if (accountability?.user === undefined || accountability?.user === null) {
+        res.send(""); 
+      }
+
+      // Get settings
+      const itemsService = new ItemsService("directus_settings", {
+        // Create an instance of ItemsService for the directus_settings collection
+        schema: await getSchema(),
+        accountability: accountability, 
+      });
+      const data = await itemsService.readOne("1"); // Read the item with ID "1" from the directus_settings collection
+
+      // Get scripts and permissions
+      if (data?.ext_custom_scripts_page_settings !== undefined) {
+        scripts = data.ext_custom_scripts_page_settings;
+      }
+
+      if (accountability?.admin) {
+        // If the user is an admin
+        if (scripts.adminScript) {
+          // If adminScript is enabled
+          res.send(scripts.isAdmin); 
+        }
+        return res.send("");
+      } else {
+        // If the user is not an admin
+        if (scripts.appScript) {
+          // If appScript is enabled
+          res.send(scripts.isAdmin);
+        }
+        return res.send(""); 
+      }
+    });
+  },
+});
+

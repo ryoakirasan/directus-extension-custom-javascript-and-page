@@ -1,0 +1,70 @@
+{
+	"name": "directus-extension-custom-javascript-and-page",
+	"description": "A hybrid Directus extension that enables custom JavaScript injection in admin UI and public page hosting functionality",
+	"icon": "extension",
+	"version": "1.0.0",
+	"keywords": [
+		"directus",
+		"directus-extension",
+		"directus-extension-bundle"
+	],
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"directus:extension": {
+		"type": "bundle",
+		"path": {
+			"app": "dist/app.js",
+			"api": "dist/api.js"
+		},
+		"entries": [
+			{
+				"type": "hook",
+				"name": "embed-scripts-hook",
+				"source": "src/embed-scripts-hook/index.ts"
+			},
+			{
+				"type": "endpoint",
+				"name": "load-scripts-endpoint",
+				"source": "src/load-scripts-endpoint/index.ts"
+			},
+			{
+				"type": "endpoint",
+				"name": "load-page-endpoint",
+				"source": "src/load-page-endpoint/index.ts"
+			},
+			{
+				"type": "module",
+				"name": "custom-javascript-page",
+				"source": "src/custom-javascript-page/index.ts"
+			}
+		],
+		"host": "^10.10.0",
+		"sandbox": {
+			"enabled": true,
+			"requestedScopes": {}
+		}
+	},
+	"scripts": {
+		"build": "directus-extension build",
+		"dev": "directus-extension build -w --no-minify",
+		"link": "directus-extension link",
+		"validate": "directus-extension validate",
+		"add": "directus-extension add"
+	},
+	"devDependencies": {
+		"@directus/extensions-sdk": "13.0.3",
+		"@types/node": "^22.13.11",
+		"typescript": "^5.8.2"
+	},
+	"dependencies": {
+		"@directus/extensions": "^3.0.3",
+		"@directus/types": "^13.0.0",
+		"@types/serve-static": "^1.15.7",
+		"fflate": "^0.8.2",
+		"node-sass": "^9.0.0",
+		"serve-static": "^1.16.2",
+		"vue": "^3.5.13"
+	}
+}

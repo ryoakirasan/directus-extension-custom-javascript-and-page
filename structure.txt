@@ -1,0 +1,18 @@
++ src/
+  + custom-javascript-page/
+    + components/
+      - navigation.vue
+    - index.ts
+    - module.vue
+    + pages/
+      - admin-scripts.vue
+      - app-scripts.vue
+      - custom-page.vue
+      - home.vue
+    - use-directus-token.js
+  + embed-scripts-hook/
+    - index.ts
+  + load-page-endpoint/
+    - index.ts
+  + load-scripts-endpoint/
+    - index.ts

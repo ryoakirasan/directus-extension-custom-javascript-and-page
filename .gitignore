@@ -1,0 +1,294 @@
+# OS generated files #
+#######################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+[Dd]esktop.ini
+
+# Editors and IDEs #
+####################
+# VS Code
+.vscode/
+*.suo
+*.workspace
+*.code-workspace
+
+# JetBrains IDEs (IntelliJ, PyCharm, etc.)
+.idea/
+*.iws
+*.ipr
+*.iml
+out/
+
+# Eclipse
+.settings/
+.project
+*.class
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# TextMate
+*.tmproj
+
+# NetBeans
+nbproject/
+
+# Visual Studio
+*.csproj.user
+*.sln
+*.swp
+*.pdb
+obj/
+bin/
+
+# Node.js and npm #
+###################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache and temporary files #
+#############################
+*.tmp
+*.log
+*.bak
+*~.nib
+._*
+*.sw[op]
+*.swo
+.sass-cache/
+.eslintcache
+.stylelintcache
+.cache
+dist/
+build/
+tmp/
+temp/
+**/tmp/
+**/temp/
+
+# Git related #
+###############
+.git/
+
+# Environment variables #
+#########################
+.env
+.env.local
+.env.*.local
+
+# Log files #
+#############
+*.log
+logs/
+
+# Others #
+##########
+# Ignore any file or folder starting with a dot (except .gitignore itself)
+.*
+!/.gitignore
+aggregate.py
+# Ignore any folder named "config"
+/config
+
+# Ignore any folder named "private"
+/private
+
+# Ignore any folder named "temp" or "tmp"
+/temp
+/tmp
+
+# Ignore backup files
+*~
+
+# Ignore build outputs
+/out
+/build
+
+# Ignore editor backup files
+*.swp
+*.swo
+*.swn
+
+# Ignore log files
+*.log
+
+# Ignore database files
+*.sqlite
+*.sqlite3
+
+# Ignore password files
+*.key
+*.pem
+*.cert
+
+# Ignore upload files
+/uploads
+
+# Ignore cache files
+/cache
+
+# Ignore configuration files
+/config.json
+/config.ini
+/config.yaml
+
+# Ignore temporary files
+/tmp/*
+/temp/*
+
+# Ignore debug files
+*.dump
+
+# Ignore test files
+/test_results
+
+# Ignore documentation
+/docs
+
+# Ignore installer packages
+*.dmg
+*.exe
+*.msi
+
+# Ignore archive files
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Ignore images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+
+# Ignore videos
+*.mp4
+*.avi
+*.mov
+
+# Ignore audio files
+*.mp3
+*.wav
+*.ogg
+
+# Ignore fonts
+*.ttf
+*.otf
+*.woff
+*.woff2
+
+# Ignore certificates
+*.p12
+*.pfx
+
+# Ignore keys
+*.key
+
+# Ignore configuration directory
+/config
+
+# Ignore log directory
+/logs
+
+# Ignore backup directory
+/backup
+
+# Ignore temporary directory
+/tmp
+
+# Ignore cache directory
+/cache
+
+# Ignore upload directory
+/uploads
+
+# Ignore database files
+*.db
+
+# Ignore virtual machine files
+*.vmdk
+*.vdi
+
+# Ignore Helm files
+/helm
+
+# Ignore Terraform files
+/terraform
+
+# Ignore Ansible files
+/ansible
+
+# Ignore Vagrant files
+/Vagrantfile
+
+# Ignore Chef files
+/chef
+
+# Ignore Puppet files
+/puppet
+
+# Ignore SaltStack files
+/saltstack
+
+# Ignore Jenkins files
+/Jenkinsfile
+
+# Ignore Travis CI files
+/.travis.yml
+
+# Ignore CircleCI files
+/.circleci
+
+# Ignore GitLab CI files
+/.gitlab-ci.yml
+
+# Ignore Bitbucket Pipelines files
+/bitbucket-pipelines.yml
+
+# Ignore AWS CloudFormation files
+/cloudformation.yml
+
+# Ignore Google Cloud Deployment Manager files
+/deployment-manager.yml
+
+# Ignore Azure Resource Manager files
+/azure-resource-manager.json
+
+# Ignore server configuration files
+/server.conf
+
+# Ignore firewall configuration files
+/firewall.conf
+
+# Ignore load balancer configuration files
+/loadbalancer.conf
+
+# Ignore monitoring configuration files
+/monitoring.conf
+
+# Ignore security configuration files
+/security.conf
+
+# Ignore backup scripts
+/backup.sh
+
+# Ignore restore scripts
+/restore.sh
+
+# Ignore test scripts
+/test.sh
