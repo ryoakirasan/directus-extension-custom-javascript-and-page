@@ -193,13 +193,13 @@ export default defineHook(({ filter, action, embed }, { services }) => {
     <script>
     ${script} // Embed the script variable content directly into the head
     </script>
-    <script id="custom-embed-header"></script> // Add an empty script tag with the ID "custom-embed-header" in the head
+    <script id="custom-embed-header"></script>
     `
   ); 
   embed(
     "body",
     `
-    <script id="custom-embed-body"></script> // Add an empty script tag with the ID "custom-embed-body" in the body
+    <script id="custom-embed-body"></script>
     `
   ); // Embed an empty script tag into the body of the Directus application
   const { collectionsService, FieldsService } = services; 

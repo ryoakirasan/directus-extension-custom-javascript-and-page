@@ -151,7 +151,7 @@ src/
 4. **Copy the Extension to the Directus Extension Directory**:
 
    ```bash
-   cp -r dist/* /path/to/your/directus/extensions/directus-extension-custom-javascript-and-page
+   cp -r dist /path/to/your/directus/extensions/directus-extension-custom-javascript-and-page/.
    ```
 
 5. **Restart Directus Service (Docker)**:
