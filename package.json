@@ -2,7 +2,7 @@
 	"name": "directus-extension-custom-javascript-and-page",
 	"description": "A hybrid Directus extension that enables custom JavaScript injection in admin UI and public page hosting functionality",
 	"icon": "extension",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"keywords": [
 		"directus",
 		"directus-extension",

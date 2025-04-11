@@ -183,10 +183,61 @@ window.onload = function () {
 };
 
 `;
-
+const fieldAttr = {
+  field: "ext_custom_scripts_page_settings",
+  type: "json",
+  meta: {
+    special: ["cast-json"],
+    interface: "input-code",
+    options: {
+      template: "",
+    },
+    display: null,
+    display_options: null,
+    readonly: false,
+    hidden: true,
+    sort: 8,
+    width: "full",
+    translations: null,
+    note: null,
+    conditions: null,
+    required: false,
+    group: null,
+    validation: null,
+    validation_message: null,
+  },
+  schema: {
+    data_type: "json",
+    default_value: JSON.stringify({
+      adminScript: false,
+      appScript: false,
+      isAdmin: {
+        head: "console.log('head admin')",
+        body: "console.log('body admin')",
+      },
+      notAdmin: {
+        head: "console.log('head not admin')",
+        body: "console.log('body not admin')",
+      },
+    }),
+    generation_expression: null,
+    max_length: null,
+    numeric_precision: null,
+    numeric_scale: null,
+    is_generated: false,
+    is_nullable: true,
+    is_unique: false,
+    is_indexed: false,
+    is_primary_key: false,
+    has_auto_increment: false,
+    foreign_key_schema: null,
+    foreign_key_table: null,
+    foreign_key_column: null,
+    comment: null,
+  },
+};
 export default defineHook(({ filter, action, embed }, { services }) => {
   // Define a hook using the defineHook function. This hook receives filter, action, and embed functions, and a services object as arguments
-
   embed(
     "head",
     `
@@ -195,14 +246,16 @@ export default defineHook(({ filter, action, embed }, { services }) => {
     </script>
     <script id="custom-embed-header"></script>
     `
-  ); 
+  );
   embed(
     "body",
     `
     <script id="custom-embed-body"></script>
     `
   ); // Embed an empty script tag into the body of the Directus application
-  const { collectionsService, FieldsService } = services; 
+  let fieldCreated = false;
+  const { collectionsService, FieldsService } = services;
+
   filter("settings.read", (items: any, meta, context) => {
     // Apply a filter to the "settings.read" event. This filter allows modifying the settings items before they are read
     const accountability = context.accountability; // Get the accountability object from the context
@@ -222,66 +275,21 @@ export default defineHook(({ filter, action, embed }, { services }) => {
         schema: context.schema,
         accountability: accountability, // Pass the accountability object
       });
-      if (item?.ext_custom_scripts_page_settings == undefined||item?.ext_custom_scripts_page_settings == null) {
-        // Check if the ext_custom_scripts_page_settings field is undefined or null
-        fieldsService.createField('directus_settings', {
-            "field": "ext_custom_scripts_page_settings",
-            "type": "json",
-            "meta": {
-                "special": [
-                    "cast-json"
-                ],
-                "interface": "input-code",
-                "options": {
-                    "template": ""
-                },
-                "display": null,
-                "display_options": null,
-                "readonly": false,
-                "hidden": true,
-                "sort": 8,
-                "width": "full",
-                "translations": null,
-                "note": null,
-                "conditions": null,
-                "required": false,
-                "group": null,
-                "validation": null,
-                "validation_message": null
-            },
-            "schema": {
-                "data_type": "json",
-                "default_value": JSON.stringify(
-                    {
-                        "adminScript": false,
-                        "appScript": false,
-                        "isAdmin": {
-                            "head": "console.log('head admin')",
-                            "body": "console.log('body admin')"
-                        },
-                        "notAdmin": {
-                            "head": "console.log('head not admin')",
-                            "body": "console.log('body not admin')"
-                        }
-                    }
-                ),
-                "generation_expression": null,
-                "max_length": null,
-                "numeric_precision": null,
-                "numeric_scale": null,
-                "is_generated": false,
-                "is_nullable": true,
-                "is_unique": false,
-                "is_indexed": false,
-                "is_primary_key": false,
-                "has_auto_increment": false,
-                "foreign_key_schema": null,
-                "foreign_key_table": null,
-                "foreign_key_column": null,
-                "comment": null
-            }
-        });
+      if (fieldCreated) {
+        return item;
       }
+      fieldsService
+        .readOne("directus_settings", "ext_custom_scripts_page_settings")
+        .then()
+        .catch(() => {
+          try {
+            fieldsService.createField("directus_settings", fieldAttr);
+            fieldCreated = true;
+          } catch (error) {
+            console.error("Field creation error:", error);
+            fieldCreated = true;
+          }
+        });
       return item;
     });
 
