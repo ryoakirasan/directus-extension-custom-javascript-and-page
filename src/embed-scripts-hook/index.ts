@@ -259,40 +259,41 @@ export default defineHook(({ filter, action, embed }, { services }) => {
   filter("settings.read", (items: any, meta, context) => {
     // Apply a filter to the "settings.read" event. This filter allows modifying the settings items before they are read
     const accountability = context.accountability; // Get the accountability object from the context
-    items = items.map((item: any) => {
-      // Iterate over each item in the settings
-      // disable ext-custom-scripts-page module,user not admin
-      if (accountability?.admin != true) {
-        item.module_bar = item.module_bar?.map((module: any) => {
-          if (module.id === "ext-custom-scripts-page") {
-            // Check if the module ID is "ext-custom-scripts-page"
-            module.enabled = false; // Disable the module if the user is not an admin
-          }
-          return module;
-        });
-      }
-      const fieldsService = new FieldsService({
-        schema: context.schema,
-        accountability: accountability, // Pass the accountability object
-      });
-      if (fieldCreated) {
-        return item;
-      }
-      fieldsService
-        .readOne("directus_settings", "ext_custom_scripts_page_settings")
-        .then()
-        .catch(() => {
-          try {
-            fieldsService.createField("directus_settings", fieldAttr);
-            fieldCreated = true;
-          } catch (error) {
-            console.error("Field creation error:", error);
-            fieldCreated = true;
-          }
-        });
-      return item;
-    });
-
+    if (accountability?.user!== undefined || accountability?.user!== null){
+        items = items.map((item: any) => {
+            // Iterate over each item in the settings
+            // disable ext-custom-scripts-page module,user not admin
+            if (accountability?.admin != true) {
+              item.module_bar = item.module_bar?.map((module: any) => {
+                if (module.id === "ext-custom-scripts-page") {
+                  // Check if the module ID is "ext-custom-scripts-page"
+                  module.enabled = false; // Disable the module if the user is not an admin
+                }
+                return module;
+              });
+            }
+            const fieldsService = new FieldsService({
+              schema: context.schema,
+              accountability: accountability, // Pass the accountability object
+            });
+            if (fieldCreated) {
+              return item;
+            }
+            fieldsService
+              .readOne("directus_settings", "ext_custom_scripts_page_settings")
+              .then()
+              .catch(() => {
+                try {
+                  fieldsService.createField("directus_settings", fieldAttr);
+                  fieldCreated = true;
+                } catch (error) {
+                  console.error("Field creation error:", error);
+                  fieldCreated = true;
+                }
+              });
+            return item;
+          });
+    }
     return items;
   });
 });

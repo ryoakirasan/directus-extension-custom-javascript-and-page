@@ -23,10 +23,9 @@ export default defineEndpoint({
       };
       //@ts-ignore
       const accountability = req.accountability; // Get the user's accountability from the request
-
       // If the user is not logged in, return an empty script
       if (accountability?.user === undefined || accountability?.user === null) {
-        res.send(""); 
+        return res.send(""); 
       }
 
       // Get settings
