@@ -826,11 +826,11 @@ const _sfc_main = {
                 case 'app-scripts': return 'AppScripts';
                 case 'custom-pages': return 'CustomPage';
                 case 'home': return 'HomePage';
-                default: return null;
+                default: return 'HomePage';
             }
         });
 
-        const isHomeView = computed(() => !currentComponent.value);
+        const isHomeView = computed(() => props.page === 'home');
 
         fetch_all_pages();
         render_page(props.page);
@@ -841,8 +841,7 @@ const _sfc_main = {
         );
 
         function change_page(to) {
-            const next = router.resolve(`${to}`);
-            router.push(next);
+            router.push(to);
         }
 
         function render_page(page) {
@@ -1001,15 +1000,11 @@ var e0 = {
       // Add this redirect
     },
     {
-      path: "home",
-      props: { page: "home" },
-      component: ModuleComponent
-    },
-    {
-      name: "page",
       path: ":page",
-      props: true,
-      component: ModuleComponent
+      component: ModuleComponent,
+      props: (route) => ({
+        page: route.params.page || "home"
+      })
     }
   ]
 };

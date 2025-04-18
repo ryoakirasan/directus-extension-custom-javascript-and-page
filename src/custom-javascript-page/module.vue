@@ -65,11 +65,11 @@ export default {
                 case 'app-scripts': return 'AppScripts';
                 case 'custom-pages': return 'CustomPage';
                 case 'home': return 'HomePage';
-                default: return null;
+                default: return 'HomePage';
             }
         });
 
-        const isHomeView = computed(() => !currentComponent.value);
+        const isHomeView = computed(() => props.page === 'home');
 
         fetch_all_pages();
         render_page(props.page);
@@ -80,8 +80,7 @@ export default {
         );
 
         function change_page(to) {
-            const next = router.resolve(`${to}`);
-            router.push(next);
+            router.push(to);
         }
 
         function render_page(page) {

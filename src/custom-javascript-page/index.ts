@@ -11,16 +11,12 @@ export default {
       redirect: '/ext-custom-scripts-page/home' // Add this redirect
     },
     {
-      path: 'home',
-      props: { page: 'home' },
-      component: ModuleComponent,
-    },
-    {
-      name: 'page',
       path: ':page',
-      props: true,
       component: ModuleComponent,
-    },
+      props: (route) => ({
+        page: route.params.page || 'home'
+      })
+    }
   ],
 };
 
